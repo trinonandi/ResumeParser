@@ -26,10 +26,11 @@ def upload_pdf():
     if file:
         file_content = file.read()
         pdf_file = BytesIO(file_content)
-        text = extract_text_from_pdf(pdf_file)
-        db = create_vector_db(text)
-        response = get_response_from_query(db, "Generate a cover letter out of the resume")
-        print(response)
+        return extract_text_from_pdf(pdf_file)
+        # text = extract_text_from_pdf(pdf_file)
+        # db = create_vector_db(text)
+        # response = get_response_from_query(db, "Generate a cover letter out of the resume")
+        # print(response)
 
     return 'File successfully uploaded', 200
 
