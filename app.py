@@ -1,9 +1,9 @@
+import json
 from io import BytesIO
 
 from flask import Flask, request
 
 from pdf_utils import extract_text_from_pdf
-from llm_utils import create_vector_db, get_response_from_query
 
 app = Flask(__name__)
 
@@ -16,23 +16,23 @@ def hello_world():  # put application's code here
 @app.post('/upload')
 def upload_pdf():
     if 'pdfFile' not in request.files:
-        return 'No file found', 400
+        return json.dumps({"Error": "File not found"}), 400
 
     file = request.files['pdfFile']
+    if not file:
+        return json.dumps({"Error": "File not found"}), 400
 
     if file.filename == '':
-        return 'No selected file', 400
+        return json.dumps({"Error": "No selected file"}), 400
 
-    if file:
-        file_content = file.read()
-        pdf_file = BytesIO(file_content)
-        return extract_text_from_pdf(pdf_file)
-        # text = extract_text_from_pdf(pdf_file)
-        # db = create_vector_db(text)
-        # response = get_response_from_query(db, "Generate a cover letter out of the resume")
-        # print(response)
-
-    return 'File successfully uploaded', 200
+    file_content = file.read()
+    pdf_file = BytesIO(file_content)
+    extracted_json = extract_text_from_pdf(pdf_file)
+    # text = extract_text_from_pdf(pdf_file)
+    # db = create_vector_db(text)
+    # response = get_response_from_query(db, "Generate a cover letter out of the resume")
+    # print(json)
+    return extracted_json, 200
 
 
 if __name__ == '__main__':
