@@ -1,19 +1,23 @@
 import json
 from io import BytesIO
 
-from flask import Flask, request
+from flask import Flask, request, Response
+from flask_cors import CORS, cross_origin
 
-from pdf_utils import extract_text_from_pdf
+from pdf_utils import extract_text_from_pdf, convert_to_html
 
 app = Flask(__name__)
+cors = CORS(app)
 
 
 @app.route('/')
+@cross_origin()
 def hello_world():  # put application's code here
     return 'Hello World!'
 
 
 @app.post('/upload')
+@cross_origin()
 def upload_pdf():
     if 'pdfFile' not in request.files:
         return json.dumps({"Error": "File not found"}), 400
@@ -28,11 +32,12 @@ def upload_pdf():
     file_content = file.read()
     pdf_file = BytesIO(file_content)
     extracted_json = extract_text_from_pdf(pdf_file)
-    # text = extract_text_from_pdf(pdf_file)
-    # db = create_vector_db(text)
-    # response = get_response_from_query(db, "Generate a cover letter out of the resume")
-    # print(json)
-    return extracted_json, 200
+    markdown_string = convert_to_html(json.loads(extracted_json))
+    response = Response(markdown_string)
+    response.status_code = 200
+    response.headers["Content-Type"] = "text/plain"
+
+    return response
 
 
 if __name__ == '__main__':
