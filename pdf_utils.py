@@ -33,14 +33,16 @@ def extract_spans(block_dict: dict):
         for block in blocks:
             if block['type'] != 0:
                 continue
-
+            line_num = 0
+            block_num = block['number']
             for line in block['lines']:
+                line_num += 1
                 for span in line['spans']:
                     text = remove_non_ascii(span['text'])
-                    if text.replace(" ", "") == "":
+                    symbols_only = r'^[\W_]+$'
+                    if re.match(symbols_only, text) or text.replace(" ", "") == "":
                         continue
-
-                    xmin, ymin, xmax, ymax = list(span['bbox'])
+                    text = text.strip()
                     font_size = span['size']
                     span_font = span['font']
                     is_upper = False
@@ -50,9 +52,10 @@ def extract_spans(block_dict: dict):
                     if re.sub("[\(\[].*?[\)\]]", "", text).isupper():
                         is_upper = True
 
-                    rows.append((xmin, ymin, xmax, ymax, text, is_upper, is_bold, span_font, font_size))
+                    rows.append((page_num, block_num, line_num, text, is_upper, is_bold, span_font, font_size))
 
-    span_df = pd.DataFrame(rows, columns=['xmin', 'ymin', 'xmax', 'ymax', 'text', 'is_upper', 'is_bold', 'span_font',
+    span_df = pd.DataFrame(rows, columns=['page_number', 'block_number', 'line_number', 'text', 'is_upper', 'is_bold',
+                                          'span_font',
                                           'font_size'])
     return span_df
 
@@ -79,17 +82,15 @@ def extract_unique_styles(span_df) -> dict:
     sorted(style_dict.items(), key=lambda x: x[1])
 
     p_size = max(style_dict, key=style_dict.get)
-    idx = 0
+    idx = 1
     tag = {}
     for size in sorted(values, reverse=True):
         idx += 1
-        if size == p_size:
+        if size <= p_size:
             idx = 0
             tag[size] = 'p'
         if size > p_size:
             tag[size] = 'h{0}'.format(idx)
-        if size < p_size:
-            tag[size] = 's{0}'.format(idx)
 
     span_tags = [tag[score] for score in span_scores]
     span_df['tag'] = span_tags
@@ -100,7 +101,51 @@ def extract_text_from_pdf(pdf_bytes):
     pdf_document = fitz.open(stream=pdf_bytes, filetype="pdf")
     block_map = extract_blocks(pdf_document)
     span_dataframe = extract_spans(block_map)
-    style_map = extract_unique_styles(span_dataframe)
+    extract_unique_styles(span_dataframe)
+
+    span_dataframe = span_dataframe.groupby(['page_number', 'block_number', 'line_number'])
+    nested_dict = {}
+    for (category, subcategory, subsubcategory), group in span_dataframe:
+        category = str(category)
+        subcategory = str(subcategory)
+        subsubcategory = str(subsubcategory)
+        if category not in nested_dict:
+            nested_dict[category] = {}
+        if subcategory not in nested_dict[category]:
+            nested_dict[category][subcategory] = {}
+        nested_dict[category][subcategory][subsubcategory] = group.to_dict(orient='records')
+
     pdf_document.close()
-    print(json.dumps(span_dataframe.to_dict('records'), indent=2))
-    return ""
+    return json.dumps(nested_dict, indent=2)
+
+
+def convert_to_html(parser_data: dict):
+    if len(parser_data) == 0:
+        return {}
+
+    data = []
+    for page_num in parser_data.keys():
+        for block_num in parser_data[page_num].keys():
+            block_data = {}
+            for line_num in parser_data[page_num][block_num]:
+                line_text = ''
+                for line in parser_data[page_num][block_num][line_num]:
+                    tag = line['tag']
+                    text = line['text']
+                    if tag in ["h2", "h3"]:
+                        line_text += f"<br><{tag}>{text}</{tag}>"
+                    elif tag in ["h4", "h5"] or line['span_font'].startswith("CMBX"):
+                        line_text += f" <b>{text}</b> "
+                    else:
+                        line_text += f" {text} "
+                if len(line_text) != 0:
+                    block_data[line_num] = f"{line_text}<br> \n\n"
+            if len(block_data) != 0:
+                data.append(block_data)
+
+    md_string = ''
+    for block_data in data:
+        for line_num in block_data.keys():
+            md_string += f"{block_data[line_num]}"
+
+    return md_string
