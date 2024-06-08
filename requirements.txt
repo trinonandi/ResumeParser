@@ -14,6 +14,7 @@ distro==1.9.0
 exceptiongroup==1.2.1
 faiss-cpu==1.8.0
 Flask==3.0.3
+Flask-Cors==4.0.1
 flatbuffers==24.3.25
 frozenlist==1.4.1
 h11==0.14.0
@@ -50,6 +51,7 @@ pydantic==2.7.1
 pydantic_core==2.18.2
 PyMuPDF==1.24.3
 PyMuPDFb==1.24.3
+pypdf==4.2.0
 python-dateutil==2.9.0.post0
 python-dotenv==1.0.1
 pytz==2024.1
@@ -73,4 +75,3 @@ urllib3==2.2.1
 Werkzeug==3.0.3
 yarl==1.9.4
 zipp==3.18.1
-Flask-Cors==4.0.1
