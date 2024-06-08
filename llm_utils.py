@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-llm = OpenAI(temperature=0.8, max_tokens=-1)
+llm = OpenAI(temperature=0, max_tokens=-1)
 embeddings = OpenAIEmbeddings()
 
 

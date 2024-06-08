@@ -5,6 +5,7 @@ from flask import Flask, request, Response, send_from_directory
 from flask_cors import CORS, cross_origin
 
 from pdf_utils import extract_text_from_pdf, convert_to_html
+from llm_utils import create_vector_db, get_response_from_query
 
 app = Flask(__name__)
 cors = CORS(app)
@@ -39,6 +40,21 @@ def upload_pdf():
     response.headers["Content-Type"] = "text/plain"
 
     return response
+
+
+@app.post('/chat')
+@cross_origin()
+def chat():
+    body = request.json
+    # print(body)
+    api_key = body.get("api_key")
+    text = body.get("text")
+    db = create_vector_db(text)
+    res = get_response_from_query(db, 'Whats are the soft skills?')
+
+    return res, 200
+
+
 
 
 if __name__ == '__main__':
