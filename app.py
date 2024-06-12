@@ -1,11 +1,11 @@
 import json
 from io import BytesIO
 
-from flask import Flask, request, Response, send_from_directory
+from flask import Flask, request, Response
 from flask_cors import CORS, cross_origin
 
 from pdf_utils import extract_text_from_pdf, convert_to_html
-from llm_utils import create_vector_db, get_response_from_query
+from llm_utils import get_response_from_query
 
 app = Flask(__name__)
 cors = CORS(app)
@@ -46,15 +46,20 @@ def upload_pdf():
 @cross_origin()
 def chat():
     body = request.json
-    # print(body)
-    api_key = body.get("api_key")
-    text = body.get("text")
-    db = create_vector_db(text)
-    res = get_response_from_query(db, 'Whats are the soft skills?')
 
-    return res, 200
+    api_key = body.get("apiKey")
+    context = body.get("context")
+    query = body.get("query")
 
+    if not api_key or not context or not query:
+        return "Bad Request", 400
 
+    answer = get_response_from_query(context, query, api_key)
+    response = Response(answer)
+    response.status_code = 200
+    response.headers["Content-Type"] = "text/plain"
+
+    return response, 200
 
 
 if __name__ == '__main__':
