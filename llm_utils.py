@@ -6,17 +6,17 @@ from langchain.chains import LLMChain
 from langchain_community.vectorstores import FAISS
 
 
-def create_vector_db(parsed_text) -> FAISS:
+def create_vector_db(parsed_text, api_key) -> FAISS:
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
     text = text_splitter.split_text(parsed_text)
-    embeddings = OpenAIEmbeddings()
+    embeddings = OpenAIEmbeddings(openai_api_key=api_key)
     db = FAISS.from_texts(text, embedding=embeddings)
     return db
 
 
 def get_response_from_query(context, query, api_key, k=4):
     llm = OpenAI(api_key=api_key, temperature=0, max_tokens=-1)
-    db = create_vector_db(context)
+    db = create_vector_db(context, api_key)
 
     chunks = db.similarity_search(query, k=k)
     docs_page_content = " ".join([c.page_content for c in chunks])
