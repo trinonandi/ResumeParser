@@ -15,7 +15,7 @@ def create_vector_db(parsed_text, api_key) -> FAISS:
 
 
 def get_response_from_query(context, query, api_key, k=4):
-    llm = OpenAI(api_key=api_key, temperature=0, max_tokens=-1)
+    llm = OpenAI(api_key=api_key, temperature=0.5, max_tokens=-1)
     db = create_vector_db(context, api_key)
 
     chunks = db.similarity_search(query, k=k)
